@@ -5,7 +5,7 @@ from lxml import etree
 
 from django.conf import settings
 from django.core.mail import send_mail
-from django.db.models import get_model
+from django.apps import apps
 from django.template.loader import render_to_string
 
 from .settings import FEEDMAPPER
@@ -104,7 +104,7 @@ class XMLParser(Parser):
                 identifier_fieldname = configuration.get('identifier_fieldname')
                 if not identifier and not self.mapping.purge:
                     raise UserWarning("Purging is off and the JSON mapping doesn't supply an identifier.")
-                model = get_model(*model_string.split('.'))
+                model = apps.get_model(*model_string.split('.'))
                 node_path = configuration['nodePath'].replace('.', '/')
                 fields = configuration['fields']
                 nodes = root.xpath(node_path, namespaces=self.nsmap)

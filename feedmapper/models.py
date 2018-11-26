@@ -1,8 +1,9 @@
+import requests
 from django.conf import settings
 from django.db import models
 from django.utils.translation import ugettext_lazy as _
+from jsonfield import JSONField
 
-from .fields import JSONField
 from .settings import FEEDMAPPER
 
 

@@ -14,17 +14,17 @@ import datetime
 from decimal import Decimal
 from django.db import models
 from django.conf import settings
-from django.utils import simplejson
+import json
 
 
-class JSONEncoder(simplejson.JSONEncoder):
+class JSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Decimal):
             return str(obj)
         elif isinstance(obj, datetime.datetime):
             assert settings.TIME_ZONE == 'UTC'
             return obj.strftime('%Y-%m-%dT%H:%M:%SZ')
-        return simplejson.JSONEncoder.default(self, obj)
+        return json.JSONEncoder.default(self, obj)
 
 
 def dumps(value):
@@ -33,7 +33,7 @@ def dumps(value):
 
 
 def loads(txt):
-    value = simplejson.loads(
+    value = json.loads(
         txt,
         parse_float=Decimal,
         encoding=settings.DEFAULT_CHARSET
@@ -51,41 +51,3 @@ class JSONDict(dict):
         return dumps(self)
 
 
-class JSONField(models.TextField):
-    """JSONField is a generic textfield that neatly serializes/unserializes
-    JSON objects seamlessly.  Main thingy must be a dict object."""
-
-    # Used so to_python() is called
-    __metaclass__ = models.SubfieldBase
-
-    def __init__(self, *args, **kwargs):
-        if 'default' not in kwargs:
-            kwargs['default'] = '{}'
-        models.TextField.__init__(self, *args, **kwargs)
-
-    def to_python(self, value):
-        """Convert our string value to JSON after we load it from the DB"""
-        if not value:
-            return {}
-        elif isinstance(value, basestring):
-            res = loads(value)
-            assert isinstance(res, dict)
-            return JSONDict(**res)
-        else:
-            return value
-
-    def get_db_prep_save(self, value, connection=None):
-        """Convert our JSON object to a string before we save"""
-        if not value:
-            return super(JSONField, self).get_db_prep_save("")
-        else:
-            return super(JSONField, self).get_db_prep_save(dumps(value), connection)
-
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        # We'll just introspect the _actual_ field.
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        # That's our definition!
-        return (field_class, args, kwargs)
